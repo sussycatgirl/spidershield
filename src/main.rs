@@ -1,14 +1,21 @@
 mod routes;
 mod markov;
 
+use std::sync::OnceLock;
+
 use axum::{routing::get, Router};
 use markov::{generate, init_chain};
+use markov_generator::HashChain;
 use routes::tarpit::tarpit_handler;
+
+pub fn get_chain() -> &'static HashChain<char> {
+    static CHAIN: OnceLock<HashChain<char>> = OnceLock::new();
+    CHAIN.get_or_init(|| init_chain())
+}
 
 #[tokio::main]
 async fn main() {
-    let chain = init_chain();
-    println!("{}", generate(&chain));
+    get_chain();
 
     let app = Router::new()
         .route("/", get(tarpit_handler))
