@@ -1,10 +1,15 @@
 mod routes;
+mod markov;
 
 use axum::{routing::get, Router};
+use markov::{generate, init_chain};
 use routes::tarpit::tarpit_handler;
 
 #[tokio::main]
 async fn main() {
+    let chain = init_chain();
+    println!("{}", generate(&chain));
+
     let app = Router::new()
         .route("/", get(tarpit_handler))
         .route("/{*path}", get(tarpit_handler));
