@@ -1,9 +1,6 @@
 use markov::Chain;
 use rand::Rng;
 
-//use markov_generator::{AddEdges, HashChain};
-
-
 pub fn init_chain() -> Chain<String> {
     println!("Loading markov chain");
     match Chain::load("data.chain") {
