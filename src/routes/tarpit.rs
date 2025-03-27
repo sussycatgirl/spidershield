@@ -1,16 +1,22 @@
+use std::time::Duration;
+
 use axum::{http, response::Html};
 use minijinja::render;
 use rand::{Rng, RngCore};
 use rand_chacha::ChaCha8Rng;
 use rand_seeder::Seeder;
 
-use crate::{get_chain, markov::markov_generate};
+use crate::{get_chain, get_config, markov::markov_generate};
 
 const TARPIT_TEMPLATE: &str = include_str!("../template/tarpit.jinja");
 
 #[axum::debug_handler]
-pub async fn tarpit_handler(path: http::Uri) -> Html<String> {
-    let mut rng: ChaCha8Rng = Seeder::from(path.path()).into_rng();
+pub async fn tarpit_handler(uri: http::Uri) -> Html<String> {
+    let config = get_config();
+
+    let mut seed: String = config.rng_seed.clone();
+    seed.push_str(uri.path());
+    let mut rng: ChaCha8Rng = Seeder::from(seed.as_str()).into_rng();
 
     let mut content = Vec::<String>::new();
     while content.join(" ").len() < 1000 {
@@ -44,6 +50,14 @@ pub async fn tarpit_handler(path: http::Uri) -> Html<String> {
         links.push(word);
     }
 
-    let r = render!(TARPIT_TEMPLATE, path => path.to_string(), content => content, author => author, links => links);
+    if config.response_delay_max > 0 {
+        tokio::time::sleep(
+            Duration::from_millis(
+                rand::random_range(config.response_delay_min..=config.response_delay_max)
+            )
+        ).await;
+    }
+
+    let r = render!(TARPIT_TEMPLATE, path => uri.to_string(), content => content, author => author, links => links);
     Html(r)
 }

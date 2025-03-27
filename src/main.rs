@@ -15,8 +15,19 @@ pub fn get_chain() -> &'static Chain<String> {
     CHAIN.get_or_init(|| init_chain())
 }
 
+static CONFIG: OnceLock<ApplicationConfig> = OnceLock::new();
+pub fn get_config() -> &'static ApplicationConfig {
+    CONFIG.get().expect("Config is not initialized")
+}
+
 #[tokio::main]
 async fn main() {
+    CONFIG.get_or_init(|| ApplicationConfig {
+        rng_seed: String::from("").into(),
+        response_delay_min: 0,
+        response_delay_max: 0,
+    });
+
     get_chain();
 
     let app = Router::new()
@@ -30,4 +41,10 @@ async fn main() {
         .expect("Can't listen on port");
     println!("Listening on {}", &addr);
     axum::serve(listener, app).await.unwrap();
+}
+
+pub struct ApplicationConfig {
+    rng_seed: String,
+    response_delay_min: u64,
+    response_delay_max: u64,
 }
