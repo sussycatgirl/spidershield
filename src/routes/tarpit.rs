@@ -1,18 +1,36 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use axum::{http, response::Html};
+use axum_client_ip::SecureClientIp;
+use axum_extra::{headers, TypedHeader};
 use minijinja::{render, Environment};
 use rand::{Rng, RngCore};
 use rand_chacha::ChaCha8Rng;
 use rand_seeder::Seeder;
+use tracing::debug;
 
-use crate::{get_chain, get_config, generator::{markov_generate, random_phrase, random_word}};
+use crate::{generator::{markov_generate, random_phrase, random_word}, get_chain, get_config, get_metrics};
 
 const TARPIT_TEMPLATE: &str = include_str!("../template/tarpit.jinja");
 
 #[axum::debug_handler]
-pub async fn tarpit_handler(uri: http::Uri) -> Html<String> {
+pub async fn tarpit_handler(
+    uri: http::Uri,
+    client_ip: SecureClientIp,
+    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+    TypedHeader(host): TypedHeader<headers::Host>,
+) -> Html<String> {
     let config = get_config();
+    let metrics = get_metrics();
+
+    let mut labels: HashMap<&str, &str> = HashMap::new();
+    let client_ip_str = client_ip.0.to_string();
+    labels.insert("ip", client_ip_str.as_str());
+    labels.insert("path", uri.path());
+    let host_str = host.to_string();
+    labels.insert("host", host_str.as_str());
+    labels.insert("user_agent", user_agent.as_str());
+    metrics.requests.with(&labels).inc();
 
     let mut seed: String = config.rng_seed.clone();
     seed.push_str(uri.path());
@@ -59,10 +77,13 @@ pub async fn tarpit_handler(uri: http::Uri) -> Html<String> {
 
     // Delay the response
     if config.response_delay_max > 0 {
+        let duration = Duration::from_millis(
+            rand::random_range(config.response_delay_min..=config.response_delay_max)
+        );
+
+        debug!("Delaying response for {:?}", duration);
         tokio::time::sleep(
-            Duration::from_millis(
-                rand::random_range(config.response_delay_min..=config.response_delay_max)
-            )
+            duration
         ).await;
     }
     Html(r)

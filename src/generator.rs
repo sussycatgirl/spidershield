@@ -1,24 +1,25 @@
 use markov::Chain;
 use rand::Rng;
+use tracing::info;
 
 use crate::get_config;
 
 pub fn init_chain() -> Chain<String> {
     let config = get_config();
 
-    println!("Loading markov chain from {:?}", config.markov_persist_path);
+    info!("Loading markov chain from {:?}", config.markov_persist_path);
     match Chain::load(config.markov_persist_path.clone()) {
         Ok(chain) => {
-            println!("Load finished");
+            info!("Load finished");
             chain
         },
         Err(_) => {
-            println!("Generating new markov chain from corpus at {:?}", config.markov_corpus_path);
+            info!("Generating new markov chain from corpus at {:?}", config.markov_corpus_path);
             let mut chain: Chain<String> = Chain::new();
             chain.feed_file(config.markov_corpus_path.clone()).expect("Failed to open corpus file");
-            println!("Chain generated, persisting to file");
+            info!("Chain generated, persisting to file");
             chain.save(config.markov_persist_path.clone()).unwrap();
-            println!("Chain written to disk");
+            info!("Chain written to disk");
 
             chain
         }
