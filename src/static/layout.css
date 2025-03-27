@@ -1,0 +1,6 @@
+body {
+    background-color: aliceblue;
+    max-width: max(800px, 60%);
+    margin: auto;
+    padding: 0 16px;
+}

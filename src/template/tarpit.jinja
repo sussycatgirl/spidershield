@@ -4,14 +4,27 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+        <link rel="stylesheet" href="/static/layout.css">
 
-        <title>{{ title }}</title>
-        <meta name="description" content="blabla">
-        <meta name="author" content="bla">
+        <title>{{ path }}</title>
+        <meta name="description" content="{{ content[0] }}">
+        <meta name="author" content="{{ author }}">
     </head>
 
     <body>
-        <h1>{{ title }}</h1>
-        <p>{{ content }}</p>
+        <main>
+            {% for paragraph in content %}
+                <p>{{ paragraph }}</p>
+            {% endfor %}
+
+            <p>
+                <ul>
+                    {% for link in links %}
+                        <li><a href="./{{ link }}/">{{ link }}</a></li>
+                    {% endfor %}
+                </ul>
+            </p>
+        </main>
     </body>
 </html>
