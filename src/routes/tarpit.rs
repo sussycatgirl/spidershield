@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use axum::{http, response::Html};
-use minijinja::render;
+use minijinja::{render, Environment};
 use rand::{Rng, RngCore};
 use rand_chacha::ChaCha8Rng;
 use rand_seeder::Seeder;
 
-use crate::{get_chain, get_config, markov::markov_generate};
+use crate::{get_chain, get_config, markov::{markov_generate, random_phrase, random_word}};
 
 const TARPIT_TEMPLATE: &str = include_str!("../template/tarpit.jinja");
 
@@ -39,17 +39,25 @@ pub async fn tarpit_handler(uri: http::Uri) -> Html<String> {
 
     // Generate between 2 and 10 links
     for _ in 0..rng.random_range(2..=10) {
-        let mut word = String::new();
-
-        // Every link is a word with between 4 and 12 characters
-        for _ in 0..rng.random_range(4..=12) {
-            // Ascii char between 0x61 and 0x7A (lowercase a-z)
-            word.push(rng.random_range(0x61..=0x7A).into());
-        }
-
-        links.push(word);
+        links.push(random_word(&mut rng, 4, 12));
     }
 
+    // Title is also made from random words
+    let title = random_phrase(get_chain(), &mut rng, 2, 5);
+
+    let mut env = Environment::new();
+    env.set_auto_escape_callback(|_| { minijinja::AutoEscape::Html });
+    let r = render!(
+        in env,
+        TARPIT_TEMPLATE,
+        path => uri.to_string(),
+        title => title,
+        content => content,
+        author => author,
+        links => links,
+    );
+
+    // Delay the response
     if config.response_delay_max > 0 {
         tokio::time::sleep(
             Duration::from_millis(
@@ -57,7 +65,5 @@ pub async fn tarpit_handler(uri: http::Uri) -> Html<String> {
             )
         ).await;
     }
-
-    let r = render!(TARPIT_TEMPLATE, path => uri.to_string(), content => content, author => author, links => links);
     Html(r)
 }
