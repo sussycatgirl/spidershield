@@ -1,13 +1,13 @@
 #![feature(iter_next_chunk)]
 
 mod routes;
-mod markov;
+mod generator;
 
 use std::{path::Path, sync::OnceLock};
 
 use axum::{routing::get, Router};
 use dotenv::dotenv;
-use markov::init_chain;
+use generator::init_chain;
 use ::markov::Chain;
 use routes::tarpit::tarpit_handler;
 

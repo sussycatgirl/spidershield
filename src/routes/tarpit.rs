@@ -6,7 +6,7 @@ use rand::{Rng, RngCore};
 use rand_chacha::ChaCha8Rng;
 use rand_seeder::Seeder;
 
-use crate::{get_chain, get_config, markov::{markov_generate, random_phrase, random_word}};
+use crate::{get_chain, get_config, generator::{markov_generate, random_phrase, random_word}};
 
 const TARPIT_TEMPLATE: &str = include_str!("../template/tarpit.jinja");
 
