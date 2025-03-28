@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    restart: always
+    ports:
+      - 127.0.0.1:3000:3000
+      - 127.0.0.1:9000:9000
+    environment:
+      RNG_SEED: "asdcfghjkfgdfgjgki"
+      RESPONSE_DELAY_MIN: 3000
+      RESPONSE_DELAY_MAX: 5000
+      MARKOV_CORPUS_PATH: datasets/hdg.txt
+      LISTEN: 127.0.0.1:3000
+      PROMETHEUS_LISTEN: 127.0.0.1:9000
+      CLIENT_IP_SOURCE: RightmostXForwardedFor

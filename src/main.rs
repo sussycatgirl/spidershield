@@ -81,7 +81,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(tarpit_handler))
         .route("/{*path}", get(tarpit_handler))
-        .nest_service("/static", axum_static::static_router("src/static"))
+        .nest_service("/static", axum_static::static_router("./static"))
         .layer(get_config().client_ip_source.clone().into_extension())
         .layer(TraceLayer::new_for_http());
 
