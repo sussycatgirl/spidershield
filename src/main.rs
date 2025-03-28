@@ -85,14 +85,6 @@ async fn main() {
         .layer(get_config().client_ip_source.clone().into_extension())
         .layer(TraceLayer::new_for_http());
 
-    // Open TCP socket
-    let addr = get_config().listen.as_str();
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .expect("Failed to open socket");
-    info!("Listening on {}", &addr);
-
-
     // Start Prometheus server
     if !get_config().prometheus_listen.is_empty() {
         let binding = get_config().prometheus_listen.parse()
@@ -105,11 +97,35 @@ async fn main() {
         info!("PROMETHEUS_LISTEN not set, not starting prometheus exporter");
     }
 
-    // Start app server
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>()
-    ).await.unwrap();
+    // Open TCP socket
+    let addr = get_config().listen.as_str();
+    if addr.starts_with("unix:") {
+        debug!("Binding to UNIX socket {}", &addr);
+
+        if let SecureClientIpSource::ConnectInfo = get_config().client_ip_source {
+            warn!("Binding to UNIX socket, but CLIENT_IP_SOURCE is ConnectInfo. You should change this.");
+        }
+
+        let sock = tokio::net::UnixListener::bind(Path::new(&addr[5..]))
+            .expect("Failed to open socket");
+
+        info!("Listening on {}", &addr);
+        axum::serve(
+            sock,
+            app
+        ).await.unwrap();
+    } else {
+        debug!("Binding to TCP socket {}", &addr);
+        let sock = tokio::net::TcpListener::bind(addr)
+            .await
+            .expect("Failed to open socket");
+
+        info!("Listening on http://{}", &addr);
+        axum::serve(
+            sock,
+            app.into_make_service_with_connect_info::<SocketAddr>()
+        ).await.unwrap();
+    };
 }
 
 #[derive(Debug)]
